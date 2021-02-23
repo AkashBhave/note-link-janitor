@@ -7,11 +7,6 @@ import * as find from "unist-util-find";
 import getNoteLinks, { NoteLinkEntry } from "./getNoteLinks";
 import processor from "./processor";
 
-const missingTitleSentinel = { type: "missingTitle" } as const;
-
-const headingFinder = processor().use(() => tree =>
-  find(tree, { type: "heading", depth: 1 }) || missingTitleSentinel
-);
 interface Note {
   title: string;
   links: NoteLinkEntry[];
@@ -25,16 +20,9 @@ async function readNote(notePath: string): Promise<Note> {
   });
 
   const parseTree = processor.parse(noteContents) as MDAST.Root;
-  const headingNode = await headingFinder.run(parseTree);
-  if (headingNode.type === "missingTitle") {
-    throw new Error(`${notePath} has no title`);
-  }
-  const title = remark()
-    .stringify({
-      type: "root",
-      children: (headingNode as MDAST.Heading).children
-    })
-    .trimEnd();
+
+	// Use filename (without extension) as title
+  const title = path.basename(notePath, ".md");
 
   return { title, links: getNoteLinks(parseTree), parseTree, noteContents };
 }
